@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/users_profile"
+        app:showAsAction="always"
+        android:icon="@drawable/baseline_account_circle_24"
+        android:title="@string/toolbar_profile" />
+    <item
+        android:id="@+id/change_user"
+        app:showAsAction="always"
+        android:icon="@drawable/baseline_meeting_room_24"
+        android:title="@string/toolbar_exit" />
+
+</menu>

@@ -2,4 +2,11 @@
     <string name="app_name">Task3</string>
     <string name="log_in">Войти</string>
     <string name="registration">Зарегистрироваться</string>
+    <string name="create_room">Создать комнату</string>
+    <string name="toolbar_profile">Профиль</string>
+    <string name="toolbar_exit">Выйти из аккаунта</string>
+    <string name="email">Email</string>
+    <string name="users_name">Имя пользователя</string>
+    <string name="password">Пароль</string>
+    <string name="repeat_password">Повторите пароль</string>
 </resources>

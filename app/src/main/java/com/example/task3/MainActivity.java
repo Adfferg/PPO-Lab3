@@ -3,6 +3,7 @@ package com.example.task3;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -19,9 +20,7 @@ import com.google.firebase.database.FirebaseDatabase;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "EmailPassword";
     private FirebaseAuth mAuth;
-    private FirebaseAuth.AuthStateListener mAuthStateListener;
 
     private EditText emailEditText;
     private EditText passwordEditText;
@@ -33,21 +32,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mAuth = FirebaseAuth.getInstance();
-        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
-                    FirebaseDatabase database = FirebaseDatabase.getInstance();
-                    DatabaseReference myRef = database.getReference("message");
-
-                    myRef.setValue("Hello, World!");
-                }
-                else {
-
-                }
-            }
-        };
 
         logInButton = findViewById(R.id.logInButton);
         registrationButton = findViewById(R.id.registrationButton);
@@ -56,37 +40,24 @@ public class MainActivity extends AppCompatActivity {
         logInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                signIn(emailEditText.getText().toString(),passwordEditText.getText().toString());
+                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                startActivity(intent);
             }
         });
         registrationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                registration(emailEditText.getText().toString(),passwordEditText.getText().toString());
+                Intent intent = new Intent(MainActivity.this, RegistrationActivity.class);
+                startActivity(intent);
             }
         });
+        FirebaseUser user = mAuth.getCurrentUser();
+        if(user!=null){
+            Intent intent = new Intent(MainActivity.this, RoomsActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 
-    private void signIn(String email, String password) {
-        mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-            @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if (task.isSuccessful())
-                    Toast.makeText(MainActivity.this, "Авторизация успешна", Toast.LENGTH_SHORT).show();
-                else
-                    Toast.makeText(MainActivity.this, "Авторизация  провалена", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-    public void registration(String email, String password){
-        mAuth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-            @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if (task.isSuccessful())
-                    Toast.makeText(MainActivity.this, "Регистрация успешна", Toast.LENGTH_SHORT).show();
-                else
-                    Toast.makeText(MainActivity.this, "Регистрация  провалена", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
+
 }
