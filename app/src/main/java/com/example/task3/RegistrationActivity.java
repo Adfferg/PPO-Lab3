@@ -14,6 +14,14 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -23,6 +31,8 @@ public class RegistrationActivity extends AppCompatActivity {
     EditText registrationPasswordEditText2;
     Button registrationActivityButton;
     private FirebaseAuth mAuth;
+    private FirebaseUser firebaseUser;
+    private String PROFILE_KEY ="profile";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,8 +47,8 @@ public class RegistrationActivity extends AppCompatActivity {
         registrationActivityButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (registrationEmailEditText.getText() != null && usersNameEditText.getText() != null &&
-                        registrationPasswordEditText.getText() != null && registrationPasswordEditText2.getText() != null) {
+                if (registrationEmailEditText.getText().length()!=0 && usersNameEditText.getText().length()!=0 &&
+                        registrationPasswordEditText.getText().length()!=0  && registrationPasswordEditText2.getText().length()!=0 ) {
                     if (registrationPasswordEditText.getText().toString().equals(registrationPasswordEditText2.getText().toString())) {
                         registration(registrationEmailEditText.getText().toString(), registrationPasswordEditText.getText().toString(),
                                 usersNameEditText.getText().toString());
@@ -59,12 +69,22 @@ public class RegistrationActivity extends AppCompatActivity {
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if (task.isSuccessful()) {
                     Toast.makeText(RegistrationActivity.this, "Регистрация успешна", Toast.LENGTH_SHORT).show();
+                    firebaseUser= mAuth.getCurrentUser();
+                    writeToDBProfiles(usersNameEditText.getText().toString());
                     FirebaseAuth.getInstance().signOut();
                     finish();
                 } else
                     Toast.makeText(RegistrationActivity.this, "Регистрация  провалена", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+    public void writeToDBProfiles(String name) {
+        User user = new User(usersNameEditText.getText().toString(),0,0);
+        DatabaseReference myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY+"/"+firebaseUser.getUid());
+        myRef.push().setValue(user);
+        //myRef.child("profiles").child(firebaseUser.getUid()).child("name").setValue(usersNameEditText.getText().toString());
+       // myRef.child("profiles").child(firebaseUser.getUid()).child("wins").setValue(0);
+     //   myRef.child("profiles").child(firebaseUser.getUid()).child("loses").setValue(0);
     }
 
 }

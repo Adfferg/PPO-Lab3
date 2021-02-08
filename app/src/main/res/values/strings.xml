@@ -9,4 +9,8 @@
     <string name="users_name">Имя пользователя</string>
     <string name="password">Пароль</string>
     <string name="repeat_password">Повторите пароль</string>
+    <string name="change">Изменить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="wins">Победы</string>
+    <string name="loses">Поражения</string>
 </resources>

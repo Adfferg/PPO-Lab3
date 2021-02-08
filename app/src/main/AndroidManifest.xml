@@ -19,6 +19,7 @@
         <activity android:name=".RoomsActivity"/>
         <activity android:name=".LoginActivity"/>
         <activity android:name=".RegistrationActivity"/>
+        <activity android:name=".UserProfileActivity"/>
     </application>
 
 </manifest>
