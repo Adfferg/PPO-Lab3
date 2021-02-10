@@ -1,6 +1,5 @@
 package com.example.task3;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -10,18 +9,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.task3.DatabaseModels.User;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.GenericTypeIndicator;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -32,7 +28,7 @@ public class RegistrationActivity extends AppCompatActivity {
     Button registrationActivityButton;
     private FirebaseAuth mAuth;
     private FirebaseUser firebaseUser;
-    private String PROFILE_KEY ="profile";
+    private String PROFILE_KEY ="PROFILE";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +77,12 @@ public class RegistrationActivity extends AppCompatActivity {
     public void writeToDBProfiles(String name) {
         User user = new User(usersNameEditText.getText().toString(),0,0);
         DatabaseReference myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY+"/"+firebaseUser.getUid());
-        myRef.push().setValue(user);
+        myRef.push().setValue(user).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(RegistrationActivity.this, "Не удалось добавить в базу данных", Toast.LENGTH_SHORT).show();
+            }
+        });
         //myRef.child("profiles").child(firebaseUser.getUid()).child("name").setValue(usersNameEditText.getText().toString());
        // myRef.child("profiles").child(firebaseUser.getUid()).child("wins").setValue(0);
      //   myRef.child("profiles").child(firebaseUser.getUid()).child("loses").setValue(0);

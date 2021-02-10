@@ -1,4 +1,4 @@
-package com.example.task3;
+package com.example.task3.DatabaseModels;
 
 public class User {
     public String name;

@@ -1,7 +1,9 @@
 package com.example.task3;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -16,10 +18,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-//import com.bumptech.glide.Glide;
 import com.bumptech.glide.Glide;
+import com.example.task3.DatabaseModels.User;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -35,16 +41,17 @@ import com.google.firebase.storage.UploadTask;
 public class UserProfileActivity extends AppCompatActivity {
 
     private EditText profileNameTextView;
-    private TextView profileWinsTextView, profileLosesTextView;
-    private Button changeNameButton;
+    private TextView profileWinsTextView, profileLosesTextView,profileEmailTextView;
+    private Button changeNameButton,deleteAccountButton;
     private FirebaseAuth mAuth;
     private DatabaseReference myRef;
     private FirebaseUser firebaseUser;
     private FirebaseStorage firebaseStorage;
     private StorageReference storageReference;
-    private String PROFILE_KEY = "profile";
+    private String PROFILE_KEY = "PROFILE";
     private User user;
     public Uri imageUri;
+    private String userId;
     ImageView profileAvatar;
 
     @Override
@@ -56,13 +63,24 @@ public class UserProfileActivity extends AppCompatActivity {
         profileLosesTextView = findViewById(R.id.profileLosesTextView);
         changeNameButton = findViewById(R.id.changeNameButton);
         profileAvatar = findViewById(R.id.profileAvatar);
+        deleteAccountButton = findViewById(R.id.deleteAccountButton);
+        profileEmailTextView = findViewById(R.id.profileEmailTextView);
         mAuth = FirebaseAuth.getInstance();
         firebaseUser = mAuth.getCurrentUser();
-        myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY + "/" + firebaseUser.getUid());
 
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            userId = extras.getString("userId");
+        }
+        if (!userId.equals(firebaseUser.getUid())){
+            profileNameTextView.setEnabled(false);
+            changeNameButton.setVisibility(View.GONE);
+            deleteAccountButton.setVisibility(View.GONE);
+        }
+        myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY + "/" + userId);
         firebaseStorage = FirebaseStorage.getInstance();
         storageReference = firebaseStorage.getReference();
-        loadUsersProfile();
+        loadUsersProfile(userId);
         changeNameButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -75,12 +93,16 @@ public class UserProfileActivity extends AppCompatActivity {
                 choosePicture();
             }
         });
+        deleteAccountButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteAccount();
+            }
+        });
 
     }
 
-    private void loadUsersProfile() {
-        final ProgressDialog pd = new ProgressDialog(this);
-        pd.setTitle("Загрузка изображения...");
+    private void loadUsersProfile(String userId) {
         ValueEventListener valueEventListener = new ValueEventListener() {
             @SuppressLint("SetTextI18n")
             @Override
@@ -88,18 +110,18 @@ public class UserProfileActivity extends AppCompatActivity {
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     user = ds.getValue(User.class);
                     profileNameTextView.setText(user.name);
+                    profileEmailTextView.setText(firebaseUser.getEmail());
                     profileWinsTextView.setText(Integer.toString(user.wins));
                     profileLosesTextView.setText(Integer.toString(user.loses));
                     changeNameButton.setEnabled(true);
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
 
             }
         };
-        storageReference.child("avatars/"+firebaseUser.getUid()).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+        storageReference.child("avatars/"+userId).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
                 Glide.with(getApplicationContext()).load(uri).into(profileAvatar);
@@ -107,7 +129,7 @@ public class UserProfileActivity extends AppCompatActivity {
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
-                Toast.makeText(UserProfileActivity.this, "Ошибка", Toast.LENGTH_SHORT).show();
+                Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(profileAvatar);
             }
         });
         myRef.addValueEventListener(valueEventListener);
@@ -164,5 +186,88 @@ public class UserProfileActivity extends AppCompatActivity {
                 pd.setMessage("Прогресс: "+(int)progressPercent+"%");
             }
         });
+    }
+
+    public void deleteAccount(){
+        String userId = firebaseUser.getUid();
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+        alert.setTitle("Удаление аккаунта");
+        alert.setMessage("Введите пароль");
+
+        final EditText input = new EditText(this);
+        alert.setView(input);
+
+        alert.setPositiveButton("ОК", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                if(input.getText().toString().length()!=0){
+                String password = input.getText().toString();
+                AuthCredential credential = EmailAuthProvider
+                        .getCredential(firebaseUser.getEmail(), password);
+
+                firebaseUser.reauthenticate(credential).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                                //удаление из DataBase
+                                myRef.removeValue().addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(UserProfileActivity.this, "Не удалось удалить данные "+e, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
+                                //удаление аватарки из Storage
+                                storageReference.child("avatars/"+userId).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+
+                                    }
+                                }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception exception) {
+                                        Toast.makeText(UserProfileActivity.this, "Не удалось удалить аватарку "+exception, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                                //удаление юзера
+                                firebaseUser.delete()
+                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                if (task.isSuccessful()) {
+
+                                                    Intent intent = new Intent(UserProfileActivity.this, MainActivity.class);
+                                                    startActivity(intent);
+                                                    finish();
+                                                    Toast.makeText(UserProfileActivity.this, "Аккаунт удалён", Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(UserProfileActivity.this, "Ошибка. Не удалось удалить аккаунт", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(UserProfileActivity.this, "Ошибка. Не удалось удалить перезайти в аккаунт", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                }
+                else{
+                    Toast.makeText(UserProfileActivity.this, "Ошибка. Пустое поле", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        alert.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled.
+            }
+        });
+
+        alert.show();
+
     }
 }

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10dp">
 
@@ -11,20 +11,20 @@
         android:id="@+id/textView12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="10dp"
         android:text="@string/toolbar_profile"
-        android:textSize="22sp"
-        android:padding="10dp"/>
+        android:textSize="22sp" />
 
     <ImageView
         android:id="@+id/profileAvatar"
         android:layout_width="238dp"
         android:layout_height="242dp"
-        tools:srcCompat="@tools:sample/avatars"
-        android:padding="10dp"/>
+        android:padding="10dp"
+        tools:srcCompat="@drawable/baseline_account_circle_18" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="10dp">
 
@@ -34,22 +34,43 @@
             android:layout_height="wrap_content"
             android:layout_weight="3"
             android:text="@string/loading"
-            android:textSize="18sp"/>
+            android:textSize="18sp" />
 
         <Button
             android:id="@+id/changeNameButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:enabled="false"
             android:text="@string/change"
-            android:textSize="18sp"
-            android:enabled="false"/>
+            android:textSize="18sp" />
 
     </LinearLayout>
-
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/textView11"
+            android:layout_width="66dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/email"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/profileEmailTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/loading"
+            android:textSize="18sp" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="10dp">
 
@@ -59,7 +80,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/wins"
-            android:textSize="18sp"/>
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/profileWinsTextView"
@@ -67,12 +88,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/loading"
-            android:textSize="18sp"/>
+            android:textSize="18sp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="10dp">
 
@@ -90,7 +111,15 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/loading"
-            android:textSize="18sp"/>
+            android:textSize="18sp" />
+
     </LinearLayout>
+
+    <Button
+        android:id="@+id/deleteAccountButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/delete_account" />
+
 
 </LinearLayout>
