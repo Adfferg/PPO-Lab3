@@ -21,6 +21,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.example.task3.Adapters.RoomsListViewAdapter;
 import com.example.task3.DatabaseModels.Room;
+import com.example.task3.Game.GameState;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -31,7 +32,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import in.dd4you.appsconfig.DD4YouConfig;
 
@@ -139,11 +142,16 @@ public class RoomsActivity extends AppCompatActivity {
                     String password = "";
                     if (input2.getText().toString().length() != 0)
                         password = input2.getText().toString();
-                    Room room = new Room(input.getText().toString(),dd4YouConfig.generateUniqueID(15), firebaseUser.getUid(), password, 1);
-                    myRef.push().setValue(room).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    String roomId = dd4YouConfig.generateUniqueID(15);
+                    Room room = new Room(roomId, input.getText().toString(), password, firebaseUser.getUid(), "",
+                            true, GameState.WAITING_FOR_PLAYER, false, false);
+                    myRef.child(roomId).setValue(room).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Toast.makeText(RoomsActivity.this, "Комната создана", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(RoomsActivity.this, GameActivity.class);
+                            intent.putExtra("roomId", room.roomId);
+                            intent.putExtra("isHost", true);
+                            startActivity(intent);
                         }
 
                     });
@@ -176,7 +184,6 @@ public class RoomsActivity extends AppCompatActivity {
                     roomList.add(room);
                 }
                 roomsListViewAdapter.notifyDataSetChanged();
-                Toast.makeText(RoomsActivity.this, Integer.toString(roomList.size()), Toast.LENGTH_SHORT).show();
             }
 
             @Override

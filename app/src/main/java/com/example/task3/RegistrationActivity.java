@@ -77,7 +77,7 @@ public class RegistrationActivity extends AppCompatActivity {
     public void writeToDBProfiles(String name) {
         User user = new User(usersNameEditText.getText().toString(),0,0);
         DatabaseReference myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY+"/"+firebaseUser.getUid());
-        myRef.push().setValue(user).addOnFailureListener(new OnFailureListener() {
+        myRef.setValue(user).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 Toast.makeText(RegistrationActivity.this, "Не удалось добавить в базу данных", Toast.LENGTH_SHORT).show();

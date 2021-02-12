@@ -14,4 +14,7 @@
     <string name="wins">Победы</string>
     <string name="loses">Поражения</string>
     <string name="delete_account">Удалить аккаунт</string>
+    <string name="player_one">Игрок 1</string>
+    <string name="player_two">Игрок 2</string>
+    <string name="ready">Готов</string>
 </resources>

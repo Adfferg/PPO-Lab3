@@ -34,7 +34,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="3"
             android:text="@string/loading"
-            android:textSize="18sp" />
+            android:textSize="18sp"
+            android:maxLength="15"/>
 
         <Button
             android:id="@+id/changeNameButton"

@@ -21,6 +21,7 @@
         <activity android:name=".RegistrationActivity"/>
         <activity android:name=".UserProfileActivity"/>
         <activity android:name=".RoomDescriptionActivity"/>
+        <activity android:name=".GameActivity"/>
     </application>
 
 </manifest>

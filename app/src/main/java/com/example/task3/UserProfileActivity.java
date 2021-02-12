@@ -107,14 +107,13 @@ public class UserProfileActivity extends AppCompatActivity {
             @SuppressLint("SetTextI18n")
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    user = ds.getValue(User.class);
+                if(snapshot.exists())
+                {user = snapshot.getValue(User.class);
                     profileNameTextView.setText(user.name);
                     profileEmailTextView.setText(firebaseUser.getEmail());
                     profileWinsTextView.setText(Integer.toString(user.wins));
                     profileLosesTextView.setText(Integer.toString(user.loses));
-                    changeNameButton.setEnabled(true);
-                }
+                    changeNameButton.setEnabled(true);}
             }
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
@@ -138,8 +137,7 @@ public class UserProfileActivity extends AppCompatActivity {
     private void changeUsersName() {
         if (profileNameTextView.getText().toString().length() != 0&& !profileNameTextView.getText().toString().equals(user.name)) {
             user.name = profileNameTextView.getText().toString();
-            myRef.removeValue();
-            myRef.push().setValue(user);
+            myRef.child("name").setValue(user.name);
             Toast.makeText(UserProfileActivity.this, "Имя изменено", Toast.LENGTH_SHORT).show();
         } else if(profileNameTextView.getText().toString().equals(user.name))
             Toast.makeText(UserProfileActivity.this, "Ошибка", Toast.LENGTH_SHORT).show();
