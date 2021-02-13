@@ -151,6 +151,7 @@ public class RoomsActivity extends AppCompatActivity {
                             Intent intent = new Intent(RoomsActivity.this, GameActivity.class);
                             intent.putExtra("roomId", room.roomId);
                             intent.putExtra("isHost", true);
+                            intent.putExtra("hostId",room.hostId);
                             startActivity(intent);
                         }
 

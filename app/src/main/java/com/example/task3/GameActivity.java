@@ -1,6 +1,5 @@
 package com.example.task3;
 
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -11,14 +10,16 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.task3.DatabaseModels.Room;
+import com.example.task3.Adapters.GameFieldAdapter;
+import com.example.task3.Game.Cell;
+import com.example.task3.Game.Field;
 import com.example.task3.Game.GameState;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -26,6 +27,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -35,6 +39,7 @@ public class GameActivity extends AppCompatActivity {
     private String enemyId;
     private String playerName;
     private String enemyName;
+    private String hostId;
 
     private boolean isHost, isAvailable, gameState, isEnemyReady = false, isPlayerReady = false;
 
@@ -46,14 +51,22 @@ public class GameActivity extends AppCompatActivity {
     private DatabaseReference roomRefIsAvailable;
     private DatabaseReference roomRefPlayerIsReady;
     private DatabaseReference roomRefEnemyIsReady;
+    private DatabaseReference roomRefGameField;
+    private DatabaseReference roomRefTurn;
+    private DatabaseReference roomRefChosenCell;
+
     private DatabaseReference profile;
 
     private TextView yourNameTextView, enemyNameTextView;
     private ImageView yourAvatarImageView, enemyAvatarImageView;
     private Button yourStartGameButton, enemyStartGameButton;
+    private RecyclerView recyclerView;
+    private GameFieldAdapter fieldAdapter;
 
     private String ROOM_KEY = "ROOMS";
     private String PROFILE_KEY = "PROFILE";
+
+    private Field field;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +76,7 @@ public class GameActivity extends AppCompatActivity {
         if (extras != null) {
             roomId = extras.getString("roomId");
             isHost = extras.getBoolean("isHost");
+            hostId = extras.getString("hostId");
         }
         storageReference = FirebaseStorage.getInstance().getReference();
 
@@ -77,9 +91,12 @@ public class GameActivity extends AppCompatActivity {
 
         roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId);
 
-
+        roomRefChosenCell = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "chosenCell");
+        roomRefTurn = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "turn");
         roomRefGameState = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "gameState");
         roomRefIsAvailable = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "isAvailable");
+        roomRefGameField = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "gameField");
+
         if (isHost) {
             roomRefPlayerIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostIsReady");
             roomRefEnemyIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerIsReady");
@@ -103,6 +120,12 @@ public class GameActivity extends AppCompatActivity {
                 yourStartGameButton.setEnabled(false);
             }
         });
+        recyclerView = findViewById(R.id.game_field);
+        field = new Field();
+        fieldAdapter = new GameFieldAdapter(this, field, roomId, hostId);
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 8));
+        recyclerView.setAdapter(fieldAdapter);
+        roomRefGameField.setValue(field.getField());
     }
 
     @Override
@@ -222,9 +245,17 @@ public class GameActivity extends AppCompatActivity {
                         roomRefPlayerIsReady.setValue(false);
                         roomRefEnemyIsReady.setValue(false);
                         isEnemyReady = isPlayerReady = false;
+                        if (isHost) {
+                            roomRefTurn.setValue("");
+                            roomRefChosenCell.setValue("");
+                        }
+
                     } else if (snapshot.getValue(GameState.class) == GameState.WAITING_FOR_CONFIRMATION) {
                         yourStartGameButton.setEnabled(true);
                         enemyStartGameButton.setEnabled(true);
+                    } else if (snapshot.getValue(GameState.class) == GameState.IN_WORK) {
+                        if (isHost)
+                            roomRefTurn.setValue(playerId);
                     }
 
                 }
@@ -238,10 +269,10 @@ public class GameActivity extends AppCompatActivity {
         roomRefEnemyIsReady.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()&&snapshot.getValue(Boolean.class)) {
+                if (snapshot.exists() && snapshot.getValue(Boolean.class)) {
                     enemyStartGameButton.setEnabled(false);
                     isEnemyReady = true;
-                    if(isPlayerReady)
+                    if (isPlayerReady)
                         roomRefGameState.setValue(GameState.IN_WORK);
                 }
             }
@@ -254,10 +285,10 @@ public class GameActivity extends AppCompatActivity {
         roomRefPlayerIsReady.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()&&snapshot.getValue(Boolean.class)) {
+                if (snapshot.exists() && snapshot.getValue(Boolean.class)) {
                     yourStartGameButton.setEnabled(false);
                     isPlayerReady = true;
-                    if(isEnemyReady)
+                    if (isEnemyReady)
                         roomRefGameState.setValue(GameState.IN_WORK);
                 }
             }
@@ -267,7 +298,44 @@ public class GameActivity extends AppCompatActivity {
 
             }
         });
+        roomRefGameField.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    List<Cell> list = new ArrayList<>();
+                    for (DataSnapshot cell : snapshot.getChildren()) {
+                        list.add(cell.getValue(Cell.class));
+                    }
+                    field.setField(list);
+                    fieldAdapter.notifyDataSetChanged();
+                    Toast.makeText(GameActivity.this, "Поле изменено", Toast.LENGTH_SHORT).show();
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        roomRefTurn.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+               /* if (snapshot.exists()) {
+                    if (isHost) {
+                        recyclerView.setEnabled(snapshot.getValue(Turn.class) != Turn.GUEST);
+                    }
+                    else{
+                        recyclerView.setEnabled(snapshot.getValue(Turn.class) != Turn.HOST);
+                    }
+                }*/
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 }
 

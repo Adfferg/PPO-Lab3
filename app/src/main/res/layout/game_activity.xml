@@ -9,8 +9,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="45dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -85,6 +84,7 @@
                 android:text="@string/loading"
                 android:textAlignment="center"
                 android:textSize="14sp" />
+
             <Button
                 android:id="@+id/enemyStartGameButton"
                 android:layout_width="match_parent"
@@ -93,12 +93,18 @@
                 android:text="@string/ready" />
         </LinearLayout>
     </LinearLayout>
-    <LinearLayout
-        android:background="@color/black"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="4"
-        android:orientation="horizontal">
+        <LinearLayout
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-    </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/game_field"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+            </androidx.recyclerview.widget.RecyclerView>
+
+        </LinearLayout>
 </LinearLayout>

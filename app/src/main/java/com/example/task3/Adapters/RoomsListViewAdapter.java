@@ -73,6 +73,7 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
                     Intent intent = new Intent(context, GameActivity.class);
                     intent.putExtra("roomId", room.roomId);
                     intent.putExtra("isHost", false);
+                    intent.putExtra("hostId",room.hostId);
                     context.startActivity(intent);
                 } else {
                     AlertDialog.Builder alert = new AlertDialog.Builder(context);
@@ -91,6 +92,7 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
                                 Intent intent = new Intent(context, GameActivity.class);
                                 intent.putExtra("roomId", room.roomId);
                                 intent.putExtra("isHost", false);
+                                intent.putExtra("hostId",room.hostId);
                                 context.startActivity(intent);
                             } else
                                 Toast.makeText(context, "Не верный пароль ", Toast.LENGTH_SHORT).show();
