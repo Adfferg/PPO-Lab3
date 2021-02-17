@@ -17,8 +17,8 @@
 
     <ImageView
         android:id="@+id/profileAvatar"
-        android:layout_width="238dp"
-        android:layout_height="242dp"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
         android:padding="10dp"
         tools:srcCompat="@drawable/baseline_account_circle_18" />
 
@@ -54,7 +54,7 @@
         android:padding="10dp">
 
         <TextView
-            android:id="@+id/textView11"
+            android:id="@+id/emailTextView"
             android:layout_width="66dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -63,6 +63,28 @@
 
         <TextView
             android:id="@+id/profileEmailTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/loading"
+            android:textSize="18sp" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/textView11"
+            android:layout_width="66dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/registration_date"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/profileDateTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -116,11 +138,24 @@
 
     </LinearLayout>
 
-    <Button
-        android:id="@+id/deleteAccountButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/delete_account" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/deleteAccountButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/delete_account" />
+
+        <Button
+            android:id="@+id/statisticsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/statistics" />
+    </LinearLayout>
 
 
 </LinearLayout>

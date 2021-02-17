@@ -108,6 +108,7 @@ public class RoomsActivity extends AppCompatActivity {
         } else if (item.getItemId() == R.id.users_profile) {
             Intent intent = new Intent(this, UserProfileActivity.class);
             intent.putExtra("userId", firebaseUser.getUid());
+            intent.putExtra("isOwner",true);
             startActivity(intent);
         }
         return true;

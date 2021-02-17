@@ -1,5 +1,6 @@
 package com.example.task3;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -18,6 +19,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -74,8 +78,13 @@ public class RegistrationActivity extends AppCompatActivity {
             }
         });
     }
+
+    @SuppressLint("SimpleDateFormat")
     public void writeToDBProfiles(String name) {
-        User user = new User(usersNameEditText.getText().toString(),0,0);
+        Date currentDate = new Date();
+        SimpleDateFormat dateFormat = null;
+        dateFormat = new SimpleDateFormat();
+        User user = new User(usersNameEditText.getText().toString(),0,0,dateFormat.format( currentDate ));
         DatabaseReference myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY+"/"+firebaseUser.getUid());
         myRef.setValue(user).addOnFailureListener(new OnFailureListener() {
             @Override

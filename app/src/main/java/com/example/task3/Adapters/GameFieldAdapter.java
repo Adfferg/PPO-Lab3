@@ -26,7 +26,7 @@ public class GameFieldAdapter extends RecyclerView.Adapter<GameFieldAdapter.View
     LayoutInflater inflater;
     Field field;
     Context context;
-    String roomId, playerId, enemyId,hostId;
+    String roomId, hostId;
     public GameFieldAdapter(Context context, Field field,String roomId,String hostId) {
         this.field = field;
         this.context = context;
@@ -118,7 +118,7 @@ public class GameFieldAdapter extends RecyclerView.Adapter<GameFieldAdapter.View
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    GameLogic logic = new GameLogic(roomId,hostId);
+                    GameLogic logic = new GameLogic(roomId,hostId,field);
                     logic.setChosenCell(getAdapterPosition());
                 }
             });

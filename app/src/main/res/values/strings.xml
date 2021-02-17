@@ -6,6 +6,7 @@
     <string name="toolbar_profile">Профиль</string>
     <string name="toolbar_exit">Выйти из аккаунта</string>
     <string name="email">Email</string>
+    <string name="registration_date">Дата регистрации</string>
     <string name="users_name">Имя пользователя</string>
     <string name="password">Пароль</string>
     <string name="repeat_password">Повторите пароль</string>
@@ -17,4 +18,8 @@
     <string name="player_one">Игрок 1</string>
     <string name="player_two">Игрок 2</string>
     <string name="ready">Готов</string>
+    <string name="statistics">Статистика</string>
+    <string name="clean_statistics">Очистить статистику</string>
+    <string name="game_statistics">Игровая статистика</string>
+    <string name="winner">won:</string>
 </resources>

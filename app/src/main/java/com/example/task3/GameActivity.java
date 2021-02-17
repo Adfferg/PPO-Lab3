@@ -1,5 +1,6 @@
 package com.example.task3;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -15,9 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.task3.Adapters.GameFieldAdapter;
+import com.example.task3.DatabaseModels.Statistic;
 import com.example.task3.Game.Cell;
 import com.example.task3.Game.Field;
 import com.example.task3.Game.GameState;
+import com.example.task3.Game.Result;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
@@ -40,6 +43,7 @@ public class GameActivity extends AppCompatActivity {
     private String playerName;
     private String enemyName;
     private String hostId;
+    private Result result;
 
     private boolean isHost, isAvailable, gameState, isEnemyReady = false, isPlayerReady = false;
 
@@ -65,6 +69,7 @@ public class GameActivity extends AppCompatActivity {
 
     private String ROOM_KEY = "ROOMS";
     private String PROFILE_KEY = "PROFILE";
+    private String STATISTICS_KEY = "STATISTICS";
 
     private Field field;
 
@@ -102,7 +107,6 @@ public class GameActivity extends AppCompatActivity {
             roomRefEnemyIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerIsReady");
             roomRefPlayerId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostId");
             roomRefEnemyId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerId");
-            Toast.makeText(this, "Вы хост", Toast.LENGTH_SHORT).show();
         } else {
             roomRefPlayerIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerIsReady");
             roomRefEnemyIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostIsReady");
@@ -110,7 +114,6 @@ public class GameActivity extends AppCompatActivity {
             roomRefPlayerId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerId");
             roomRefIsAvailable.setValue(false);
             roomRefGameState.setValue(GameState.WAITING_FOR_CONFIRMATION);
-            Toast.makeText(this, "Вы гость", Toast.LENGTH_SHORT).show();
         }
         loadUserInfo();
         yourStartGameButton.setOnClickListener(new View.OnClickListener() {
@@ -134,8 +137,6 @@ public class GameActivity extends AppCompatActivity {
         if (isHost) {
             roomRef.removeValue();
         } else {
-
-            //тут баг, когда выходишь хостом раньше второго юзера, остаётся мусор в дб, пофиксить!!!
             roomRefGameState.setValue(GameState.WAITING_FOR_PLAYER);
             roomRefIsAvailable.setValue(true);
             roomRefPlayerId.setValue("");
@@ -214,6 +215,15 @@ public class GameActivity extends AppCompatActivity {
                         }
                     });
                 }
+                enemyAvatarImageView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(GameActivity.this, UserProfileActivity.class);
+                        intent.putExtra("userId", enemyId);
+                        intent.putExtra("isOwner",false);
+                        startActivity(intent);
+                    }
+                });
             }
 
             @Override
@@ -256,6 +266,40 @@ public class GameActivity extends AppCompatActivity {
                     } else if (snapshot.getValue(GameState.class) == GameState.IN_WORK) {
                         if (isHost)
                             roomRefTurn.setValue(playerId);
+                    }
+                    else if (snapshot.getValue(GameState.class)==GameState.ENDED){
+                        roomRefTurn.setValue("");
+                        roomRef.child("result").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if(snapshot.exists()){
+                                    if(isHost){
+                                        if(snapshot.getValue(Result.class)==Result.WHITE_WON)
+                                            Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
+                                        else
+                                            Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
+
+                                        DatabaseReference refStat1 = FirebaseDatabase.getInstance().getReference(STATISTICS_KEY+"/"+playerId);
+                                        DatabaseReference refStat2 = FirebaseDatabase.getInstance().getReference(STATISTICS_KEY+"/"+enemyId);
+                                        refStat1.push().setValue(new Statistic(roomId,enemyId,enemyName,playerId,playerName,result));
+                                        refStat2.push().setValue(new Statistic(roomId,enemyId,enemyName,playerId,playerName,result));
+                                    }
+                                    else{
+                                        if(snapshot.getValue(Result.class)==Result.BLACK_WON)
+                                            Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
+                                        else
+                                            Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
+                                    }
+
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+
                     }
 
                 }
@@ -308,7 +352,71 @@ public class GameActivity extends AppCompatActivity {
                     }
                     field.setField(list);
                     fieldAdapter.notifyDataSetChanged();
-                    Toast.makeText(GameActivity.this, "Поле изменено", Toast.LENGTH_SHORT).show();
+                    //проверить, не победил ли кто ещё
+                    if(isHost)
+                    {
+                    int res = field.gameEnded();
+                    if (res == 1) {
+                        result= Result.WHITE_WON;
+                        roomRef.child("result").setValue(Result.WHITE_WON);
+                        roomRefGameState.setValue(GameState.ENDED);
+                        profile.child(hostId).child("wins").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                profile.child(hostId).child("wins").setValue(snapshot.getValue(Integer.class) + 1).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(GameActivity.this, hostId+" "+enemyId, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                        profile.child(enemyId).child("loses").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                profile.child(enemyId).child("loses").setValue(snapshot.getValue(Integer.class) + 1);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+
+                    } else if (res == 2) {
+                        result= Result.BLACK_WON;
+                        roomRef.child("result").setValue(Result.BLACK_WON);
+                        roomRefGameState.setValue(GameState.ENDED);
+                        profile.child(enemyId).child("wins").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                profile.child(enemyId).child("wins").setValue(snapshot.getValue(Integer.class) + 1);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+                        profile.child(hostId).child("loses").addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                profile.child(hostId).child("loses").setValue(snapshot.getValue(Integer.class) + 1);
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
+
+                    }
+                }
                 }
             }
 
@@ -320,15 +428,12 @@ public class GameActivity extends AppCompatActivity {
         roomRefTurn.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-               /* if (snapshot.exists()) {
-                    if (isHost) {
-                        recyclerView.setEnabled(snapshot.getValue(Turn.class) != Turn.GUEST);
-                    }
-                    else{
-                        recyclerView.setEnabled(snapshot.getValue(Turn.class) != Turn.HOST);
-                    }
-                }*/
-
+                if(snapshot.exists())
+                {
+                    String turn = snapshot.getValue(String.class);
+                    if(turn.equals(playerId))
+                        Toast.makeText(GameActivity.this, "Ваш ход!", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override

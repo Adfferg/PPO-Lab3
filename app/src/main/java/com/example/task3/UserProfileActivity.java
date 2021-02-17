@@ -41,8 +41,8 @@ import com.google.firebase.storage.UploadTask;
 public class UserProfileActivity extends AppCompatActivity {
 
     private EditText profileNameTextView;
-    private TextView profileWinsTextView, profileLosesTextView,profileEmailTextView;
-    private Button changeNameButton,deleteAccountButton;
+    private TextView profileWinsTextView, profileLosesTextView,profileDateTextView,emailTextView,profileEmailTextView;
+    private Button changeNameButton,deleteAccountButton,statisticsButton;
     private FirebaseAuth mAuth;
     private DatabaseReference myRef;
     private FirebaseUser firebaseUser;
@@ -52,6 +52,7 @@ public class UserProfileActivity extends AppCompatActivity {
     private User user;
     public Uri imageUri;
     private String userId;
+    private boolean isOwner;
     ImageView profileAvatar;
 
     @Override
@@ -64,18 +65,25 @@ public class UserProfileActivity extends AppCompatActivity {
         changeNameButton = findViewById(R.id.changeNameButton);
         profileAvatar = findViewById(R.id.profileAvatar);
         deleteAccountButton = findViewById(R.id.deleteAccountButton);
+        profileDateTextView = findViewById(R.id.profileDateTextView);
+        emailTextView = findViewById(R.id.emailTextView);
         profileEmailTextView = findViewById(R.id.profileEmailTextView);
+        statisticsButton = findViewById(R.id.statisticsButton);
+
         mAuth = FirebaseAuth.getInstance();
         firebaseUser = mAuth.getCurrentUser();
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             userId = extras.getString("userId");
+            isOwner = extras.getBoolean("isOwner");
         }
         if (!userId.equals(firebaseUser.getUid())){
             profileNameTextView.setEnabled(false);
             changeNameButton.setVisibility(View.GONE);
             deleteAccountButton.setVisibility(View.GONE);
+            emailTextView.setVisibility(View.GONE);
+            profileEmailTextView.setVisibility(View.GONE);
         }
         myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY + "/" + userId);
         firebaseStorage = FirebaseStorage.getInstance();
@@ -99,6 +107,15 @@ public class UserProfileActivity extends AppCompatActivity {
                 deleteAccount();
             }
         });
+        statisticsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Intent intent = new Intent(UserProfileActivity.this, StatisticsActivity.class);
+                intent.putExtra("userId",userId);
+                startActivity(intent);
+            }
+        });
 
     }
 
@@ -110,9 +127,10 @@ public class UserProfileActivity extends AppCompatActivity {
                 if(snapshot.exists())
                 {user = snapshot.getValue(User.class);
                     profileNameTextView.setText(user.name);
-                    profileEmailTextView.setText(firebaseUser.getEmail());
+                    profileDateTextView.setText(user.registrationTime);
                     profileWinsTextView.setText(Integer.toString(user.wins));
                     profileLosesTextView.setText(Integer.toString(user.loses));
+                    profileEmailTextView.setText(firebaseUser.getEmail());
                     changeNameButton.setEnabled(true);}
             }
             @Override
@@ -261,11 +279,10 @@ public class UserProfileActivity extends AppCompatActivity {
 
         alert.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                // Canceled.
+
             }
         });
 
         alert.show();
-
     }
 }
