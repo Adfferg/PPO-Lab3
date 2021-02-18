@@ -18,8 +18,6 @@ import com.example.task3.GameLogic;
 import com.example.task3.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 public class GameFieldAdapter extends RecyclerView.Adapter<GameFieldAdapter.ViewHolder> {
 

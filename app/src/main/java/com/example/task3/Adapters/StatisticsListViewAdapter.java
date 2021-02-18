@@ -23,10 +23,6 @@ import com.example.task3.GameActivity;
 import com.example.task3.R;
 import com.example.task3.DatabaseModels.Room;
 import com.example.task3.UserProfileActivity;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.List;
 

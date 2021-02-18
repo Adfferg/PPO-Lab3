@@ -21,8 +21,6 @@ import com.example.task3.R;
 import com.example.task3.DatabaseModels.Room;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.List;
 
@@ -31,20 +29,18 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
     private List<Room> roomList;
     private Context context;
     private int layout;
+    private String userId;
 
-    private FirebaseAuth mAuth;
-    private FirebaseUser firebaseUser;
-    private DatabaseReference roomRef;
     private String ROOM_KEY = "ROOMS";
 
-    public RoomsListViewAdapter(@NonNull Context context, int resource, List<Room> roomList) {
+    public RoomsListViewAdapter(@NonNull Context context, int resource, List<Room> roomList, String userId) {
         super(context, resource, roomList);
         this.roomList = roomList;
         this.context = context;
         this.inflater = LayoutInflater.from(context);
         this.layout = resource;
-        mAuth = FirebaseAuth.getInstance();
-        firebaseUser = mAuth.getCurrentUser();
+        this.userId = userId;
+
     }
 
     public View getView(int pos, View convertView, ViewGroup parent) {
@@ -62,47 +58,54 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
         roomItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(room.isAvailable){
-                if (room.roomPassword.equals("")) {
-                    roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + room.roomId);
-                    roomRef.child("secondPlayerId").setValue(firebaseUser.getUid());
-                    Intent intent = new Intent(context, GameActivity.class);
-                    intent.putExtra("roomId", room.roomId);
-                    intent.putExtra("isHost", false);
-                    intent.putExtra("hostId",room.hostId);
-                    context.startActivity(intent);
+                if (room.isAvailable||room.hostId.equals(userId)) {
+                    {
+                        if (room.hostId.equals(userId)) {
+                            Intent intent = new Intent(context, GameActivity.class);
+                            intent.putExtra("roomId", room.roomId);
+                            intent.putExtra("isHost", true);
+                            intent.putExtra("hostId", room.hostId);
+                            intent.putExtra("yourId", room.hostId);
+                            context.startActivity(intent);
+                        } else if (room.roomPassword.equals("")) {
+                            Intent intent = new Intent(context, GameActivity.class);
+                            intent.putExtra("roomId", room.roomId);
+                            intent.putExtra("isHost", false);
+                            intent.putExtra("hostId", room.hostId);
+                            intent.putExtra("yourId", userId);
+                            context.startActivity(intent);
+                        } else {
+                            AlertDialog.Builder alert = new AlertDialog.Builder(context);
+
+                            alert.setTitle("Вход в комнату");
+                            alert.setMessage("Введите пароль");
+
+                            final EditText input = new EditText(context);
+                            alert.setView(input);
+
+                            alert.setPositiveButton("ОК", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    if (input.getText().toString().length() > 0 && input.getText().toString().equals(room.roomPassword)) {
+                                        Intent intent = new Intent(context, GameActivity.class);
+                                        intent.putExtra("roomId", room.roomId);
+                                        intent.putExtra("isHost", false);
+                                        intent.putExtra("hostId", room.hostId);
+                                        intent.putExtra("yourId", userId);
+                                        context.startActivity(intent);
+                                    } else
+                                        Toast.makeText(context, "Не верный пароль ", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            alert.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+
+                                }
+                            });
+                            alert.show();
+                        }
+                    }
                 } else {
-                    AlertDialog.Builder alert = new AlertDialog.Builder(context);
-
-                    alert.setTitle("Вход в комнату");
-                    alert.setMessage("Введите пароль");
-
-                    final EditText input = new EditText(context);
-                    alert.setView(input);
-
-                    alert.setPositiveButton("ОК", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            if (input.getText().toString().length() > 0 && input.getText().toString().equals(room.roomPassword)) {
-                                roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + room.roomId);
-                                roomRef.child("secondPlayerId").setValue(firebaseUser.getUid());
-                                Intent intent = new Intent(context, GameActivity.class);
-                                intent.putExtra("roomId", room.roomId);
-                                intent.putExtra("isHost", false);
-                                intent.putExtra("hostId",room.hostId);
-                                context.startActivity(intent);
-                            } else
-                                Toast.makeText(context, "Не верный пароль ", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    alert.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-
-                        }
-                    });
-                    alert.show();
-                }}
-                else{
                     Toast.makeText(context, "Комната занята", Toast.LENGTH_SHORT).show();
                 }
             }

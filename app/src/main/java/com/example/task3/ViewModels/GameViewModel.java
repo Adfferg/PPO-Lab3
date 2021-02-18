@@ -63,9 +63,14 @@ public class GameViewModel extends ViewModel {
     private DatabaseReference profile = FirebaseDatabase.getInstance().getReference(PROFILE_KEY);
 
 
-    public void setRoomId(String roomId) {
+    public void setRoomId(String roomId, boolean isHost, String yourId) {
         this.roomId = roomId;
         roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId);
+        if(!isHost)
+        {
+            roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId);
+            roomRef.child("secondPlayerId").setValue(yourId);
+        }
     }
 
     public MutableLiveData<String> getPlayerName() {
@@ -237,6 +242,7 @@ public class GameViewModel extends ViewModel {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     if (snapshot.getValue(GameState.class) == GameState.WAITING_FOR_PLAYER) {
+                        roomRefChosenCell.setValue("");
                         roomRefPlayerIsReady.setValue(false);
                         roomRefEnemyIsReady.setValue(false);
                         isEnemyReady = isPlayerReady = false;
@@ -246,6 +252,7 @@ public class GameViewModel extends ViewModel {
                         }
                         setGameState(GameState.WAITING_FOR_PLAYER);
                     } else if (snapshot.getValue(GameState.class) == GameState.WAITING_FOR_CONFIRMATION) {
+                        roomRefChosenCell.setValue("");
                         setGameState(GameState.WAITING_FOR_CONFIRMATION);
                     } else if (snapshot.getValue(GameState.class) == GameState.IN_WORK) {
                         if (isHost)

@@ -18,10 +18,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProviders;
 
 import com.example.task3.Adapters.RoomsListViewAdapter;
 import com.example.task3.DatabaseModels.Room;
 import com.example.task3.Game.GameState;
+import com.example.task3.ViewModels.GameViewModel;
+import com.example.task3.ViewModels.RoomViewModel;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -41,14 +44,15 @@ import in.dd4you.appsconfig.DD4YouConfig;
 public class RoomsActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private Button createRoomButton;
-    private DatabaseReference myRef;
+
     private FirebaseUser firebaseUser;
     private ListView roomsListView;
-    private String ROOM_KEY = "ROOMS";
     private List<Room> roomList = new ArrayList<>();
     private RoomsListViewAdapter roomsListViewAdapter;
     //генерация id для комнаты
     private DD4YouConfig dd4YouConfig;
+
+    private RoomViewModel roomViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,13 +60,13 @@ public class RoomsActivity extends AppCompatActivity {
         setContentView(R.layout.rooms_activity);
 
         dd4YouConfig = new DD4YouConfig(this);
+        roomViewModel = ViewModelProviders.of(this).get(RoomViewModel.class);
         createRoomButton = findViewById(R.id.createRoomButton);
         mAuth = FirebaseAuth.getInstance();
         firebaseUser = mAuth.getCurrentUser();
         roomsListView = findViewById(R.id.roomsListView);
-        myRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY);
         roomsListViewAdapter = new RoomsListViewAdapter(RoomsActivity.this,
-                R.layout.room_item, roomList);
+                R.layout.room_item, roomList,firebaseUser.getUid());
         roomsListView.setAdapter(roomsListViewAdapter);
         createRoomButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -146,17 +150,7 @@ public class RoomsActivity extends AppCompatActivity {
                     String roomId = dd4YouConfig.generateUniqueID(15);
                     Room room = new Room(roomId, input.getText().toString(), password, firebaseUser.getUid(), "",
                             true, GameState.WAITING_FOR_PLAYER, false, false);
-                    myRef.child(roomId).setValue(room).addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Intent intent = new Intent(RoomsActivity.this, GameActivity.class);
-                            intent.putExtra("roomId", room.roomId);
-                            intent.putExtra("isHost", true);
-                            intent.putExtra("hostId",room.hostId);
-                            startActivity(intent);
-                        }
-
-                    });
+                    roomViewModel.myRefListener(roomId, room, getApplicationContext());
                 } else {
                     Toast.makeText(RoomsActivity.this, "Ошибка. Пустое имя", Toast.LENGTH_SHORT).show();
                 }
@@ -193,6 +187,6 @@ public class RoomsActivity extends AppCompatActivity {
 
             }
         };
-        myRef.addValueEventListener(valueEventListener);
+        roomViewModel.myRefAddListener(valueEventListener);
     }
 }

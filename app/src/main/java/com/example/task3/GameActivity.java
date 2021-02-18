@@ -42,7 +42,7 @@ public class GameActivity extends AppCompatActivity {
 
     private String roomId;
     private String hostId;
-
+    private String yourId;
 
     private boolean isHost;
 
@@ -64,6 +64,7 @@ public class GameActivity extends AppCompatActivity {
             roomId = extras.getString("roomId");
             isHost = extras.getBoolean("isHost");
             hostId = extras.getString("hostId");
+            yourId = extras.getString("yourId");
         }
         storageReference = FirebaseStorage.getInstance().getReference();
         viewModel = ViewModelProviders.of(this).get(GameViewModel.class);
@@ -75,7 +76,7 @@ public class GameActivity extends AppCompatActivity {
         enemyStartGameButton = findViewById(R.id.enemyStartGameButton);
 
 
-        viewModel.setRoomId(roomId);
+        viewModel.setRoomId(roomId, isHost,yourId);
 
         viewModel.setSomeRoomRefs(roomId);
 
