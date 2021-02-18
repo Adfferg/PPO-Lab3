@@ -11,6 +11,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,6 +23,7 @@ import com.example.task3.Game.Cell;
 import com.example.task3.Game.Field;
 import com.example.task3.Game.GameState;
 import com.example.task3.Game.Result;
+import com.example.task3.ViewModels.GameViewModel;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
@@ -38,40 +41,19 @@ import java.util.List;
 public class GameActivity extends AppCompatActivity {
 
     private String roomId;
-    private String playerId;
-    private String enemyId;
-    private String playerName;
-    private String enemyName;
     private String hostId;
-    private Result result;
 
-    private boolean isHost, isAvailable, gameState, isEnemyReady = false, isPlayerReady = false;
+
+    private boolean isHost;
+
 
     private StorageReference storageReference;
-    private DatabaseReference roomRefPlayerId;
-    private DatabaseReference roomRefEnemyId;
-    private DatabaseReference roomRef;
-    private DatabaseReference roomRefGameState;
-    private DatabaseReference roomRefIsAvailable;
-    private DatabaseReference roomRefPlayerIsReady;
-    private DatabaseReference roomRefEnemyIsReady;
-    private DatabaseReference roomRefGameField;
-    private DatabaseReference roomRefTurn;
-    private DatabaseReference roomRefChosenCell;
-
-    private DatabaseReference profile;
+    private GameViewModel viewModel;
 
     private TextView yourNameTextView, enemyNameTextView;
     private ImageView yourAvatarImageView, enemyAvatarImageView;
     private Button yourStartGameButton, enemyStartGameButton;
     private RecyclerView recyclerView;
-    private GameFieldAdapter fieldAdapter;
-
-    private String ROOM_KEY = "ROOMS";
-    private String PROFILE_KEY = "PROFILE";
-    private String STATISTICS_KEY = "STATISTICS";
-
-    private Field field;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +66,7 @@ public class GameActivity extends AppCompatActivity {
             hostId = extras.getString("hostId");
         }
         storageReference = FirebaseStorage.getInstance().getReference();
-
+        viewModel = ViewModelProviders.of(this).get(GameViewModel.class);
         yourNameTextView = findViewById(R.id.yourNameTextView);
         enemyNameTextView = findViewById(R.id.enemyNameTextView);
         yourAvatarImageView = findViewById(R.id.yourAvatarImageView);
@@ -92,54 +74,36 @@ public class GameActivity extends AppCompatActivity {
         yourStartGameButton = findViewById(R.id.yourStartGameButton);
         enemyStartGameButton = findViewById(R.id.enemyStartGameButton);
 
-        profile = FirebaseDatabase.getInstance().getReference(PROFILE_KEY);
 
-        roomRef = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId);
+        viewModel.setRoomId(roomId);
 
-        roomRefChosenCell = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "chosenCell");
-        roomRefTurn = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "turn");
-        roomRefGameState = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "gameState");
-        roomRefIsAvailable = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "isAvailable");
-        roomRefGameField = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "gameField");
+        viewModel.setSomeRoomRefs(roomId);
 
-        if (isHost) {
-            roomRefPlayerIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostIsReady");
-            roomRefEnemyIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerIsReady");
-            roomRefPlayerId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostId");
-            roomRefEnemyId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerId");
-        } else {
-            roomRefPlayerIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerIsReady");
-            roomRefEnemyIsReady = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostIsReady");
-            roomRefEnemyId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "hostId");
-            roomRefPlayerId = FirebaseDatabase.getInstance().getReference(ROOM_KEY + "/" + roomId + "/" + "secondPlayerId");
-            roomRefIsAvailable.setValue(false);
-            roomRefGameState.setValue(GameState.WAITING_FOR_CONFIRMATION);
-        }
+        viewModel.setRoomRefsIfHost(isHost);
+
         loadUserInfo();
         yourStartGameButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                roomRefPlayerIsReady.setValue(true);
+                viewModel.setRoomRefPlayerIsReady(true);
                 yourStartGameButton.setEnabled(false);
             }
         });
         recyclerView = findViewById(R.id.game_field);
-        field = new Field();
-        fieldAdapter = new GameFieldAdapter(this, field, roomId, hostId);
+        GameFieldAdapter fieldAdapter = new GameFieldAdapter(this, viewModel.getField().getValue(), roomId, hostId);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 8));
         recyclerView.setAdapter(fieldAdapter);
-        roomRefGameField.setValue(field.getField());
+        viewModel.setRoomRefGameField(viewModel.getField().getValue());
+
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         if (isHost) {
-            roomRef.removeValue();
+            viewModel.deleteRoom();
         } else {
-            roomRefGameState.setValue(GameState.WAITING_FOR_PLAYER);
-            roomRefIsAvailable.setValue(true);
-            roomRefPlayerId.setValue("");
+            viewModel.playerLeftRoom();
         }
         finish();
     }
@@ -150,295 +114,135 @@ public class GameActivity extends AppCompatActivity {
     }
 
     public void loadUserInfo() {
-        roomRefPlayerId.addValueEventListener(new ValueEventListener() {
+        viewModel.roomRefPlayerIdListener();
+
+
+        viewModel.roomRefEnemyIdListener();
+        enemyAvatarImageView.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    playerId = snapshot.getValue(String.class);
-                    profile.child(playerId).child("name").addValueEventListener(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            playerName = snapshot.getValue(String.class);
-                            yourNameTextView.setText(playerName);
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-                    });
-                    storageReference.child("avatars/" + playerId).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                        @Override
-                        public void onSuccess(Uri uri) {
-                            Glide.with(getApplicationContext()).load(uri).into(yourAvatarImageView);
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(yourAvatarImageView);
-                        }
-                    });
+            public void onClick(View v) {
+                if (!viewModel.getEnemyId().equals("")) {
+                    Intent intent = new Intent(GameActivity.this, UserProfileActivity.class);
+                    intent.putExtra("userId", viewModel.getEnemyId());
+                    intent.putExtra("isOwner", false);
+                    startActivity(intent);
                 }
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
         });
-        roomRefEnemyId.addValueEventListener(new ValueEventListener() {
+
+        viewModel.roomRefListener();
+        viewModel.getRoomDeleted().observe(this, new Observer<Boolean>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    enemyId = snapshot.getValue(String.class);
-                    profile.child(enemyId).child("name").addValueEventListener(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            enemyName = snapshot.getValue(String.class);
-                            enemyNameTextView.setText(enemyName);
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-                    });
-                    storageReference.child("avatars/" + enemyId).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                        @Override
-                        public void onSuccess(Uri uri) {
-                            Glide.with(getApplicationContext()).load(uri).into(enemyAvatarImageView);
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(enemyAvatarImageView);
-                        }
-                    });
-                }
-                enemyAvatarImageView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(GameActivity.this, UserProfileActivity.class);
-                        intent.putExtra("userId", enemyId);
-                        intent.putExtra("isOwner",false);
-                        startActivity(intent);
-                    }
-                });
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-        roomRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!snapshot.exists()) {
+            public void onChanged(Boolean bool) {
+                if (bool) {
                     Toast.makeText(GameActivity.this, "Комната была удалена", Toast.LENGTH_SHORT).show();
                     finish();
                 }
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
         });
-        roomRefGameState.addValueEventListener(new ValueEventListener() {
+        viewModel.roomGameStateListener(isHost);
+        viewModel.getPlayerName().observe(this, new Observer<String>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    if (snapshot.getValue(GameState.class) == GameState.WAITING_FOR_PLAYER) {
-                        yourStartGameButton.setEnabled(false);
-                        enemyStartGameButton.setEnabled(false);
-                        roomRefPlayerIsReady.setValue(false);
-                        roomRefEnemyIsReady.setValue(false);
-                        isEnemyReady = isPlayerReady = false;
-                        if (isHost) {
-                            roomRefTurn.setValue("");
-                            roomRefChosenCell.setValue("");
-                        }
-
-                    } else if (snapshot.getValue(GameState.class) == GameState.WAITING_FOR_CONFIRMATION) {
-                        yourStartGameButton.setEnabled(true);
-                        enemyStartGameButton.setEnabled(true);
-                    } else if (snapshot.getValue(GameState.class) == GameState.IN_WORK) {
-                        if (isHost)
-                            roomRefTurn.setValue(playerId);
+            public void onChanged(String str) {
+                yourNameTextView.setText(str);
+                storageReference.child("avatars/" + viewModel.getPlayerId()).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        Glide.with(getApplicationContext()).load(uri).into(yourAvatarImageView);
                     }
-                    else if (snapshot.getValue(GameState.class)==GameState.ENDED){
-                        roomRefTurn.setValue("");
-                        roomRef.child("result").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                if(snapshot.exists()){
-                                    if(isHost){
-                                        if(snapshot.getValue(Result.class)==Result.WHITE_WON)
-                                            Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
-                                        else
-                                            Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
-
-                                        DatabaseReference refStat1 = FirebaseDatabase.getInstance().getReference(STATISTICS_KEY+"/"+playerId);
-                                        DatabaseReference refStat2 = FirebaseDatabase.getInstance().getReference(STATISTICS_KEY+"/"+enemyId);
-                                        refStat1.push().setValue(new Statistic(roomId,enemyId,enemyName,playerId,playerName,result));
-                                        refStat2.push().setValue(new Statistic(roomId,enemyId,enemyName,playerId,playerName,result));
-                                    }
-                                    else{
-                                        if(snapshot.getValue(Result.class)==Result.BLACK_WON)
-                                            Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
-                                        else
-                                            Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
-                                    }
-
-                                }
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-
-                            }
-                        });
-
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(yourAvatarImageView);
                     }
-
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
+                });
             }
         });
-        roomRefEnemyIsReady.addValueEventListener(new ValueEventListener() {
+        viewModel.getEnemyName().observe(this, new Observer<String>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists() && snapshot.getValue(Boolean.class)) {
-                    enemyStartGameButton.setEnabled(false);
-                    isEnemyReady = true;
-                    if (isPlayerReady)
-                        roomRefGameState.setValue(GameState.IN_WORK);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
+            public void onChanged(String str) {
+                enemyNameTextView.setText(str);
+                storageReference.child("avatars/" + viewModel.getEnemyId()).getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+                        Glide.with(getApplicationContext()).load(uri).into(enemyAvatarImageView);
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(enemyAvatarImageView);
+                    }
+                });
             }
         });
-        roomRefPlayerIsReady.addValueEventListener(new ValueEventListener() {
+        viewModel.getGameState().observe(this, new Observer<GameState>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists() && snapshot.getValue(Boolean.class)) {
+            public void onChanged(GameState gameState) {
+                if (gameState == GameState.WAITING_FOR_PLAYER) {
                     yourStartGameButton.setEnabled(false);
-                    isPlayerReady = true;
-                    if (isEnemyReady)
-                        roomRefGameState.setValue(GameState.IN_WORK);
+                    enemyStartGameButton.setEnabled(false);
+                } else if (gameState == GameState.WAITING_FOR_CONFIRMATION) {
+                    yourStartGameButton.setEnabled(true);
+                    enemyStartGameButton.setEnabled(true);
                 }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
             }
         });
-        roomRefGameField.addValueEventListener(new ValueEventListener() {
+        viewModel.roomRefEnemyIsReadyListener();
+        viewModel.getIsEnemyButtonEnabled().observe(this, new Observer<Boolean>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    List<Cell> list = new ArrayList<>();
-                    for (DataSnapshot cell : snapshot.getChildren()) {
-                        list.add(cell.getValue(Cell.class));
-                    }
-                    field.setField(list);
-                    fieldAdapter.notifyDataSetChanged();
-                    //проверить, не победил ли кто ещё
-                    if(isHost)
-                    {
-                    int res = field.gameEnded();
-                    if (res == 1) {
-                        result= Result.WHITE_WON;
-                        roomRef.child("result").setValue(Result.WHITE_WON);
-                        roomRefGameState.setValue(GameState.ENDED);
-                        profile.child(hostId).child("wins").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                profile.child(hostId).child("wins").setValue(snapshot.getValue(Integer.class) + 1).addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(GameActivity.this, hostId+" "+enemyId, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-
-                            }
-                        });
-                        profile.child(enemyId).child("loses").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                profile.child(enemyId).child("loses").setValue(snapshot.getValue(Integer.class) + 1);
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-
-                            }
-                        });
-
-                    } else if (res == 2) {
-                        result= Result.BLACK_WON;
-                        roomRef.child("result").setValue(Result.BLACK_WON);
-                        roomRefGameState.setValue(GameState.ENDED);
-                        profile.child(enemyId).child("wins").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                profile.child(enemyId).child("wins").setValue(snapshot.getValue(Integer.class) + 1);
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-
-                            }
-                        });
-                        profile.child(hostId).child("loses").addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                profile.child(hostId).child("loses").setValue(snapshot.getValue(Integer.class) + 1);
-                            }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-
-                            }
-                        });
-
-                    }
+            public void onChanged(Boolean bool) {
+                if (bool) {
+                    enemyStartGameButton.setEnabled(false);
+                } else {
+                    enemyStartGameButton.setEnabled(true);
                 }
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
             }
         });
-        roomRefTurn.addValueEventListener(new ValueEventListener() {
+        viewModel.getIsYourButtonEnabled().observe(this, new Observer<Boolean>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(snapshot.exists())
-                {
-                    String turn = snapshot.getValue(String.class);
-                    if(turn.equals(playerId))
-                        Toast.makeText(GameActivity.this, "Ваш ход!", Toast.LENGTH_SHORT).show();
+            public void onChanged(Boolean bool) {
+                if (bool) {
+                    yourStartGameButton.setEnabled(false);
+                } else {
+                    yourStartGameButton.setEnabled(true);
                 }
             }
+        });
 
+        viewModel.roomRefPlayerIsReadyListener();
+        viewModel.roomRefFieldListener(isHost,hostId);
+        viewModel.roomRefTurnListener();
+        viewModel.getTurn().observe(this, new Observer<String>() {
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
+            public void onChanged(String str) {
 
+                if (str.equals(viewModel.getPlayerId())&&viewModel.getResult().getValue()==Result.NONE) {
+                    Toast.makeText(GameActivity.this, "Ваш ход!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        viewModel.getResult().observe(this, new Observer<Result>() {
+            @Override
+            public void onChanged(Result result) {
+
+                if (result == Result.WHITE_WON) {
+                    if (isHost)
+                        Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
+                    else
+                        Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
+                } else if (result == Result.BLACK_WON) {
+                    if (isHost)
+                        Toast.makeText(GameActivity.this, "Вы проиграли!", Toast.LENGTH_SHORT).show();
+                    else
+                        Toast.makeText(GameActivity.this, "Вы выйграли!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        viewModel.getField().observe(this, new Observer<Field>() {
+            @Override
+            public void onChanged(Field field2) {
+                GameFieldAdapter adapter = new GameFieldAdapter(getApplicationContext(), field2, roomId, hostId);
+                recyclerView.setAdapter(adapter);
             }
         });
     }
