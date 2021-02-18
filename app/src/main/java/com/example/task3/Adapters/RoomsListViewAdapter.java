@@ -58,7 +58,7 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
         roomItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (room.isAvailable||room.hostId.equals(userId)) {
+                if (room.isAvailable || room.hostId.equals(userId)||room.secondPlayerId.equals(userId)) {
                     {
                         if (room.hostId.equals(userId)) {
                             Intent intent = new Intent(context, GameActivity.class);
@@ -66,6 +66,13 @@ public class RoomsListViewAdapter extends ArrayAdapter<Room> {
                             intent.putExtra("isHost", true);
                             intent.putExtra("hostId", room.hostId);
                             intent.putExtra("yourId", room.hostId);
+                            context.startActivity(intent);
+                        } else if (room.secondPlayerId.equals(userId)) {
+                            Intent intent = new Intent(context, GameActivity.class);
+                            intent.putExtra("roomId", room.roomId);
+                            intent.putExtra("isHost", false);
+                            intent.putExtra("hostId", room.hostId);
+                            intent.putExtra("yourId", room.secondPlayerId);
                             context.startActivity(intent);
                         } else if (room.roomPassword.equals("")) {
                             Intent intent = new Intent(context, GameActivity.class);

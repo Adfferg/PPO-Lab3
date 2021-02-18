@@ -31,6 +31,7 @@ public class StatisticsActivity extends AppCompatActivity {
     private Button clearStatisticsButton;
     private List<Statistic> userStatistics;
     private String userId;
+    private boolean isOwner;
     private String STATISTICS_KEY = "STATISTICS";
 
     @Override
@@ -43,6 +44,7 @@ public class StatisticsActivity extends AppCompatActivity {
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             userId = extras.getString("userId");
+            isOwner = extras.getBoolean("isOwner");
         }
         StatisticsListViewAdapter adapter = new StatisticsListViewAdapter(StatisticsActivity.this,
                 R.layout.statistics_item, userStatistics);
@@ -58,7 +60,8 @@ public class StatisticsActivity extends AppCompatActivity {
                         userStatistics.add(statistic);
 
                     }
-                    clearStatisticsButton.setEnabled(true);
+                    if (isOwner)
+                        clearStatisticsButton.setEnabled(true);
                     adapter.notifyDataSetChanged();
                 } else {
                     Toast.makeText(StatisticsActivity.this, "Статистика пуста", Toast.LENGTH_SHORT).show();

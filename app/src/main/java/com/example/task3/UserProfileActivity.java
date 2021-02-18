@@ -118,6 +118,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
                 Intent intent = new Intent(UserProfileActivity.this, StatisticsActivity.class);
                 intent.putExtra("userId",userId);
+                intent.putExtra("isOwner",isOwner);
                 startActivity(intent);
             }
         });
