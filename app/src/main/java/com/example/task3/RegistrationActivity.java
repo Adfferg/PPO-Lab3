@@ -9,8 +9,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProviders;
 
 import com.example.task3.DatabaseModels.User;
+import com.example.task3.ViewModels.ProfileViewModel;
+import com.example.task3.ViewModels.RegistrationViewModel;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
@@ -32,12 +35,13 @@ public class RegistrationActivity extends AppCompatActivity {
     Button registrationActivityButton;
     private FirebaseAuth mAuth;
     private FirebaseUser firebaseUser;
-    private String PROFILE_KEY ="PROFILE";
 
+    private RegistrationViewModel registrationViewModel;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.registration_activity);
+        registrationViewModel =   ViewModelProviders.of(this).get(RegistrationViewModel.class);
         mAuth = FirebaseAuth.getInstance();
         registrationEmailEditText = findViewById(R.id.registrationEmailEditText);
         usersNameEditText = findViewById(R.id.usersNameEditText);
@@ -85,16 +89,7 @@ public class RegistrationActivity extends AppCompatActivity {
         SimpleDateFormat dateFormat = null;
         dateFormat = new SimpleDateFormat();
         User user = new User(usersNameEditText.getText().toString(),0,0,dateFormat.format( currentDate ));
-        DatabaseReference myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY+"/"+firebaseUser.getUid());
-        myRef.setValue(user).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(RegistrationActivity.this, "Не удалось добавить в базу данных", Toast.LENGTH_SHORT).show();
-            }
-        });
-        //myRef.child("profiles").child(firebaseUser.getUid()).child("name").setValue(usersNameEditText.getText().toString());
-       // myRef.child("profiles").child(firebaseUser.getUid()).child("wins").setValue(0);
-     //   myRef.child("profiles").child(firebaseUser.getUid()).child("loses").setValue(0);
+        registrationViewModel.saveUser(firebaseUser.getUid(),user);
     }
 
 }

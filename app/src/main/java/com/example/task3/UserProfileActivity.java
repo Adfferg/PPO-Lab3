@@ -17,9 +17,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProviders;
 
 import com.bumptech.glide.Glide;
 import com.example.task3.DatabaseModels.User;
+import com.example.task3.ViewModels.ProfileViewModel;
+import com.example.task3.ViewModels.RoomViewModel;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -44,21 +47,23 @@ public class UserProfileActivity extends AppCompatActivity {
     private TextView profileWinsTextView, profileLosesTextView,profileDateTextView,emailTextView,profileEmailTextView;
     private Button changeNameButton,deleteAccountButton,statisticsButton;
     private FirebaseAuth mAuth;
-    private DatabaseReference myRef;
+
     private FirebaseUser firebaseUser;
     private FirebaseStorage firebaseStorage;
     private StorageReference storageReference;
-    private String PROFILE_KEY = "PROFILE";
+
     private User user;
     public Uri imageUri;
     private String userId;
     private boolean isOwner;
     ImageView profileAvatar;
-
+    private ProfileViewModel profileViewModel;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.user_profile_activity);
+
+        profileViewModel =  ViewModelProviders.of(this).get(ProfileViewModel.class);
         profileNameTextView = findViewById(R.id.profileNameTextView);
         profileWinsTextView = findViewById(R.id.profileWinsTextView);
         profileLosesTextView = findViewById(R.id.profileLosesTextView);
@@ -85,7 +90,7 @@ public class UserProfileActivity extends AppCompatActivity {
             emailTextView.setVisibility(View.GONE);
             profileEmailTextView.setVisibility(View.GONE);
         }
-        myRef = FirebaseDatabase.getInstance().getReference(PROFILE_KEY + "/" + userId);
+        profileViewModel.setMyRef(userId);
         firebaseStorage = FirebaseStorage.getInstance();
         storageReference = firebaseStorage.getReference();
         loadUsersProfile(userId);
@@ -149,13 +154,13 @@ public class UserProfileActivity extends AppCompatActivity {
                 Glide.with(getApplicationContext()).load("https://firebasestorage.googleapis.com/v0/b/task3-120a9.appspot.com/o/avatars%2Fno-avatar.png?alt=media&token=3cd19d45-030c-4cb8-935a-1598ed281d8e").into(profileAvatar);
             }
         });
-        myRef.addValueEventListener(valueEventListener);
+        profileViewModel.addListener(valueEventListener);
     }
 
     private void changeUsersName() {
         if (profileNameTextView.getText().toString().length() != 0&& !profileNameTextView.getText().toString().equals(user.name)) {
             user.name = profileNameTextView.getText().toString();
-            myRef.child("name").setValue(user.name);
+            profileViewModel.changeName(user.name);
             Toast.makeText(UserProfileActivity.this, "Имя изменено", Toast.LENGTH_SHORT).show();
         } else if(profileNameTextView.getText().toString().equals(user.name))
             Toast.makeText(UserProfileActivity.this, "Ошибка", Toast.LENGTH_SHORT).show();
@@ -225,13 +230,7 @@ public class UserProfileActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Void aVoid) {
                                 //удаление из DataBase
-                                myRef.removeValue().addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(UserProfileActivity.this, "Не удалось удалить данные "+e, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-
+                                profileViewModel.deleteData();
                                 //удаление аватарки из Storage
                                 storageReference.child("avatars/"+userId).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                                     @Override
